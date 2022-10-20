@@ -28,7 +28,7 @@ class ClientManager {
     // create a new tunnel with `id`
     // if the id is already used, a random id is assigned
     // if the tunnel could not be created, throws an error
-    async newClient(id) {
+    async newClient(id, ip = 'undefined') {
         const clients = this.clients;
         const stats = this.stats;
 
@@ -45,6 +45,7 @@ class ClientManager {
 
         const client = new Client({
             id,
+            ip,
             agent,
         });
 

@@ -13,6 +13,7 @@ class Client extends EventEmitter {
 
         const agent = this.agent = options.agent;
         const id = this.id = options.id;
+        this.ip = options.ip;
 
         this.debug = Debug(`lt:Client[${this.id}]`);
 

@@ -30,7 +30,17 @@ export default function(opt) {
 
     router.get('/api/status', async (ctx, next) => {
         const stats = manager.stats;
+        
+        const clients = Object.keys(manager.clients).reduce((sort, el) => {
+            if (!sort[manager.clients[el].ip])
+                sort[manager.clients[el].ip] = []
+            
+            sort[manager.clients[el].ip].push(manager.clients[el].id)
+            return sort
+        }, {})
+        
         ctx.body = {
+            clients,
             tunnels: stats.tunnels,
             mem: process.memoryUsage(),
         };
@@ -67,7 +77,8 @@ export default function(opt) {
         if (isNewClientRequest) {
             const reqId = hri.random();
             debug('making new client with id %s', reqId);
-            const info = await manager.newClient(reqId);
+            const ip = ctx.request.header['x-real-ip'] || ctx.request.header['x-forwarded-for'];
+            const info = await manager.newClient(reqId, ip);
 
             const url = schema + '://' + info.id + '.' + ctx.request.host;
             info.url = url;
@@ -94,6 +105,18 @@ export default function(opt) {
 
         const reqId = parts[1];
 
+        if (process.env.BLACKLIST) {
+            const blacklist = process.env.BLACKLIST.split(',');
+            if (blacklist.includes(reqId))
+            {  
+                ctx.status = 403;
+                ctx.body = {
+                    message: `Invalid subdomain. Subdomain '${reqId}' reserved.`,
+                };
+                return;
+            }
+        }
+
         // limit requested hostnames to 63 characters
         if (! /^(?:[a-z0-9][a-z0-9\-]{4,63}[a-z0-9]|[a-z0-9]{4,63})$/.test(reqId)) {
             const msg = 'Invalid subdomain. Subdomains must be lowercase and between 4 and 63 alphanumeric characters.';
@@ -105,7 +128,8 @@ export default function(opt) {
         }
 
         debug('making new client with id %s', reqId);
-        const info = await manager.newClient(reqId);
+        const ip = ctx.request.header['x-real-ip'] || ctx.request.header['x-forwarded-for'];
+        const info = await manager.newClient(reqId, ip);
 
         const url = schema + '://' + info.id + '.' + ctx.request.host;
         info.url = url;
