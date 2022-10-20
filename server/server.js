@@ -134,9 +134,6 @@ export default function(opt) {
 
         const client = manager.getClient(clientId);
         if (!client) {
-            // res.statusCode = 302;
-            // res.end('404');
-
             res.writeHead(302,
                 { Location: landingPage }
             );
